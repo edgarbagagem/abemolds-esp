@@ -1,9 +1,17 @@
 #include  <ESP8266WiFi.h>
-#include  <ESP8266WebServer.h>
+#include  <ESP8266WebServer.h>  
+#include <ESP8266Firebase.h> //Need to install
+#include <ArduinoJson.h>     // Need To Install
 
 #include  "secrets.h"
 
 #define HTTP_REST_PORT 80
+
+//https://github.com/Rupakpoddar/ESP8266Firebase/blob/master/examples/FirebaseJsonDemo/FirebaseJsonDemo.ino
+#define FIREBASE_URL "https://abemolds-60b85-default-rtdb.europe-west1.firebasedatabase.app/"
+
+Firebase firebase(FIREBASE_URL);
+
 ESP8266WebServer server(HTTP_REST_PORT);
 
 int temps[] = {240, 250, 260, 200, 245, 300, 270, 220, 280, 255};
@@ -38,6 +46,10 @@ void loop() {
 
 void getTemperature(){
   server.send(200, "text/json", String(temps[0]));
+  firebase.setString("Example/setMold", "Lego 4x4");
+  firebase.setInt("Example/setTemperature", temps[3]);
+
+  firebase.json(true);              // Make sure to add this line.
 }
 
 // Manage not found URL
