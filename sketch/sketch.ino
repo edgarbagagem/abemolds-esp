@@ -51,23 +51,25 @@ double lastFlow = 0;
 double lastPressure = 0;
 
 double curCavityTemp = 30;
+double curPlasticTemp = 180;
 double curAccelerometer = 0;
 double curFlow = 0;
 double curPressure = 0;
 bool correctParameters = true;
 
 bool acceptProd = true;
-unsigned int stage = 0;
+unsigned int stage = 4;
 //Available stages: 0 = "clamping", 1 = "injecting", 2 = "cooling", 3 = "ejecting"
 
 //Demo variables
-unsigned long stageStartMillis = 0;
+unsigned long demoStageStartMillis = 0;
 unsigned int demoStage = 0;
 /*double lastCavityTempDemo = 30;
 double lastAccelerometerDemo = 0;
 double lastFlowDemo = 0;
 double lastPressureDemo = 0;*/
 
+unsigned long stageStartMillis = 0;
 unsigned long sendDataPrevMillis = 0;
 bool signupOK = false;
 
@@ -106,144 +108,251 @@ void setup() {
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
 
-  stageStartMillis = millis();
   //Get manufacturing parameters
   getManufacturingParameters();
+
+  demoStageStartMillis = millis();
+
+  updateCorrectParameters();
 }
 
 void loop() {
   if (Firebase.ready() && signupOK) {
     demoMode();
     manageProduction();
-    delay(1000);
   }
 }
 
 void demoMode() {
-  unsigned long demoStageMillis = millis() - stageStartMillis;
+  //determine current stage's duration
+  unsigned long demoStageMillis = millis() - demoStageStartMillis;
 
   //Serial.println("DemoStageSecs=" + demoStageMillis);
-  Serial.println("-------------------------------");
-  Serial.print("DemoStageSecs = ");
-  Serial.println(demoStageMillis);
-  Serial.print("CurAccelerometer = ");
-  Serial.println(curAccelerometer);
-  Serial.print("CurFlow = ");
-  Serial.println(curFlow);
-  Serial.print("CurCavityTemp = ");
-  Serial.println(curCavityTemp);
+
+  double tempAux;
 
   switch(demoStage) {
     //Clamping
     case 0:
       Serial.println("Currently clamping");
       //Average duration is ~20s
-      if (demoStageMillis > 20000) {
+      if (demoStageMillis > 10000) {
         curAccelerometer = 0;
         demoStage = 1;
-        curFlow = 5;
-        stageStartMillis = millis();
+        curFlow = (double(maxInjectionFlow) + double(minInjectionFlow)) / 2;
+        curPressure = (double(maxFillPressure) + double(minFillPressure)) / 2;
+        curPlasticTemp = (double(maxPlasticTemp) + double(minPlasticTemp)) / 2;
+        demoStageStartMillis = millis();
         return;
       }
 
       //Temperature, Flow and Pressure don't change
-      if (demoStageMillis < 10000) {
+      if (demoStageMillis < 5000) {
         curAccelerometer -= 0.05;
       }
-      else if ((demoStageMillis >= 10000 && demoStageMillis < 20000) || curAccelerometer < 0) {
+      else if (curAccelerometer < 0) {
         curAccelerometer += 0.05;
       }
 
       break;
     case 1:
-      Serial.println("Currently injecting");
+      Serial.println("Currently injecting - filling");
 
-      if (demoStageMillis > 30000) {
+      if (demoStageMillis > minFillMillis) {
         curFlow = 0;
         demoStage = 2;
-        stageStartMillis = millis();
+        demoStageStartMillis = millis();
         return;
       }
 
-      curFlow *= double(random(98, 102)) / 100;
+      curFlow *= double(random(996, 1004)) / 1000;
+      curPlasticTemp *= double(random(998, 1002)) / 1000;
 
-      if (demoStageMillis < 10000) {
-        curCavityTemp *= double(random(105, 115)) / 100;
+      //Filling mold
+      if (demoStageMillis < minFillMillis - 5000) {
+        tempAux = curCavityTemp * double(random(110, 120)) / 100;
+
+        if (tempAux < curPlasticTemp) {
+          curCavityTemp = tempAux;
+        }
+        else {
+          curCavityTemp *= double(random(98, 100)) / 100;
+        }
+
+        curPressure *= double(random(996, 1004)) / 1000;
       }
-      else if (demoStageMillis >= 10000 && demoStageMillis < 30000) {
-        curCavityTemp *= double(random(102, 110)) / 100;
+      //Reduce pressure for packing
+      //demoStageMillis >= minFillMillis - 5000 && demoStageMillis < minFillMillis &&s 
+      else if (demoStageMillis >= minFillMillis - 5000 && demoStageMillis < minFillMillis && curPressure > maxPackPressure) {
+        Serial.println("Reducing pressure for packing");
+        tempAux = curCavityTemp * double(random(101, 105)) / 100;
+        if (tempAux < curPlasticTemp) {
+          curCavityTemp = tempAux;
+        }
+        else {
+          curCavityTemp *= double(random(98, 100)) / 100;
+        }
+        curPressure *= double(random(70, 60)) / 100;
       }
 
       break;
     case 2:
+      Serial.println("Currently injecting - packing");
+      if (demoStageMillis > maxPackMillis - 2000) {
+        demoStage = 3;
+        demoStageStartMillis = millis();
+      }
+
+      tempAux = curCavityTemp * double(random(101, 104)) / 100;
+      if (tempAux < curPlasticTemp) {
+        curCavityTemp = tempAux;
+      }
+      else {
+        curCavityTemp *= double(random(98, 100)) / 100;
+      }
+      
+      curPressure *= double(random(98, 102)) / 100;
+
+      break;
+    case 3:
       Serial.println("Currently cooling");
 
       if (curCavityTemp < maxCoolingTemp) {
-        demoStage = 3;
-        stageStartMillis = millis();
+        demoStage = 4;
+        demoStageStartMillis = millis();
         return;
       }
 
       curCavityTemp *= double(random(90, 98)) / 100;
+      curPressure *= double(random(99, 102)) / 100;
 
       break;
-    case 3:
+    case 4:
       Serial.println("Currently ejecting");
+
+      if (demoStageMillis > 10000) {
+        curAccelerometer = 0;
+        demoStage = 0;
+        demoStageStartMillis = millis();
+        return;
+      }
+      curPressure = 0;
+      if (demoStageMillis < 5000) {
+        curAccelerometer += 0.05;
+      }
+      else if (curAccelerometer < 0) {
+        curAccelerometer -= 0.05;
+      }
       break;
   }
 }
 
 void manageProduction() {
+  unsigned long stageMillis = millis() - stageStartMillis;
   //send current data to database
   updateCavityTemperature();
+  updatePlasticTemp();
+  updatePressure();
   updateFlow();
 
+  Serial.println("-------------------------------");
+  Serial.print("StageMillis = ");
+  Serial.println(stageMillis);
+  Serial.print("CurAccelerometer = ");
+  Serial.println(curAccelerometer);
+  Serial.print("CurFlow = ");
+  Serial.println(curFlow);
+  Serial.print("CurCavityTemp = ");
+  Serial.println(curCavityTemp);
+  Serial.print("CurPlasticTemp = ");
+  Serial.println(curPlasticTemp);
+  Serial.print("CurPressure = ");
+  Serial.println(curPressure);
+
   //if mold is opening
-  if (curAccelerometer > 0 && lastAccelerometer < curAccelerometer && stage == 2) {
+  if (curAccelerometer > 0 && stage == 3) {
     //set stage to 'ejecting'
-    stage = 3;
+    stage = 4;
     updateStage();
+    stageStartMillis = millis();
   }
   //or if mold is clamping
-  else if (curAccelerometer < 0 && lastAccelerometer > curAccelerometer && stage == 3) {
+  else if (curAccelerometer < 0 && stage == 4) {
     //set stage to 'clamping'
     stage = 0;
     updateStage();
+    stageStartMillis = millis();
+
+    //increment total parts produced IF correctParameters is true
+    if (correctParameters) {
+      incrementPartsProduced();
+    }
+
     //restart correctParameters boolean
     correctParameters = true;
+    updateCorrectParameters();
   }
 
   //update last acceleration
   lastAccelerometer = curAccelerometer;
 
-  //if flow is off-specs AND no bad parameters were detected previously
-  if (correctParameters && (curFlow > maxFlow || curFlow < minFlow)) {
-    //set correctParameters to false
-    correctParameters = false;
-  }
-
   //if stage is 'clamping' but flow has started
   if (curFlow > 0 && stage == 0) {
-    //set stage to 'injecting'
+    //set stage to 'injecting - filling'
     stage = 1;
     updateStage();
+    stageStartMillis = millis();
   }
 
   lastFlow = curFlow;
 
-  //TODO implement pressure
-
-  //if stage is injecting but cavity temperature has started to cool down
-  if (curCavityTemp < lastCavityTemp && stage == 1) {
-    //set stage to cooling
+  //if stage is filling, pressure is under the maximum packing pressure (pressure has already reduced) and the stage has been active for over the minimum filling time
+  if (stage == 1 && curPressure < maxPackPressure && stageMillis > minFillMillis) {
+    //set stage to 'injecting - packing'
     stage = 2;
     updateStage();
+    stageStartMillis = millis();
   }
-  //if cavity temperature has cooled below the maximum ejecting temperature
-  else if (curCavityTemp < lastCavityTemp && curCavityTemp < maxCoolingTemp && stage == 2) {
-    //set stage to ejecting
+/*
+  //if flow is off-specs AND no bad parameters were detected previously during filling process
+  if (correctParameters && (curFlow > maxInjectionFlow || curFlow < minInjectionFlow) && stage == 1 && stageMillis < minFillMillis - 1500) {
+    //set correctParameters to false
+    correctParameters = false;
+    updateCorrectParameters();
+  }
+
+  //Check if filling is within spec, given a 5s interval to lower pressure for packing
+  if (correctParameters && stage == 1 && ((curPressure > maxFillPressure || curPressure < minFillPressure) && stageMillis < maxFillMillis - (maxFillMillis * 0.33))) {
+    correctParameters = false;
+    Serial.print("Stage millis: ");
+    Serial.println(stageMillis);
+    updateCorrectParameters();
+  }
+*/
+  if (correctParameters && stage == 1 && (((curFlow > maxInjectionFlow || curFlow < minInjectionFlow) && stageMillis < minFillMillis - 1500) || ((curPressure > maxFillPressure || curPressure < minFillPressure || curPlasticTemp > maxPlasticTemp || curPlasticTemp < minPlasticTemp) && stageMillis < 0.66 * maxFillMillis))) {
+    correctParameters = false;
+    updateCorrectParameters();
+  }
+
+  //if stage is packing but cavity temperature has started to cool down
+  if (curCavityTemp < curPlasticTemp * 0.95 && curCavityTemp < lastCavityTemp && stage == 2) {
+    //set stage to cooling
     stage = 3;
     updateStage();
+
+    //if cooling started too early or too late
+    if (stageMillis < minPackMillis || stageMillis > maxPackMillis) {
+      correctParameters = false;
+      updateCorrectParameters();
+    }
+
+    stageStartMillis = millis();
+  }
+
+  //Check if packing pressure is within specs
+  if (stage == 2 && (curPressure < minPackPressure || curPressure > maxPackPressure)) {
+    correctParameters = false;
+    updateCorrectParameters();
   }
 
   //update last cavity temperature
@@ -318,12 +427,15 @@ void updateStage(){
       stageText = "Clamping";
       break;
     case 1:
-      stageText = "Injecting";
+      stageText = "Injecting - Filling";
       break;
     case 2:
-      stageText = "Cooling";
+      stageText = "Injecting - Packing";
       break;
     case 3:
+      stageText = "Cooling";
+      break;
+    case 4:
       stageText = "Ejecting";
       break;
   }
