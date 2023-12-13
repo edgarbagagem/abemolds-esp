@@ -250,26 +250,39 @@ void manageProduction() {
   lastCavityTemp = curCavityTemp;
 }
 
-void acceptParts() {
+void updateCorrectParameters() {
   if (Firebase.RTDB.setBool(&fbdo, "molds/1000/currentParameters/isAcceptingParts", correctParameters)){
-      Serial.println("PASSED");
+      Serial.print("UPDATED PARAMETERS: ");
+      Serial.println(correctParameters);
       //Serial.println("PATH: " + fbdo.dataPath());
       //Serial.println("TYPE: " + fbdo.dataType());
   }
   else {
-    Serial.println("FAILED");
+    Serial.println("FAILED UPDATING PARAMETERS");
     Serial.println("REASON: " + fbdo.errorReason());
   }
 }
 
 void updateCavityTemperature(){
-  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/currentParameters/tempC", curCavityTemp)){
+  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/currentParameters/cavityTempC", curCavityTemp)){
       Serial.println("UPDATED CAVITY TEMP");
       //Serial.println("PATH: " + fbdo.dataPath());
       //Serial.println("TYPE: " + fbdo.dataType());
   }
   else {
     Serial.println("FAILED UPDATING CAVITY TEMP");
+    Serial.println("REASON: " + fbdo.errorReason());
+  }
+}
+
+void updatePressure(){
+  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/currentParameters/pressure", curPressure)){
+      Serial.println("UPDATED PRESSURE");
+      //Serial.println("PATH: " + fbdo.dataPath());
+      //Serial.println("TYPE: " + fbdo.dataType());
+  }
+  else {
+    Serial.println("FAILED UPDATING PRESSURE");
     Serial.println("REASON: " + fbdo.errorReason());
   }
 }
@@ -282,6 +295,18 @@ void updateFlow(){
   }
   else {
     Serial.println("FAILED UPDATING INJECTION FLOW");
+    Serial.println("REASON: " + fbdo.errorReason());
+  }
+}
+
+void updatePlasticTemp(){
+  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/currentParameters/plasticTempC", curPlasticTemp)){
+      Serial.println("UPDATED PLASTIC TEMP");
+      //Serial.println("PATH: " + fbdo.dataPath());
+      //Serial.println("TYPE: " + fbdo.dataType());
+  }
+  else {
+    Serial.println("FAILED UPDATING PLASTIC TEMP");
     Serial.println("REASON: " + fbdo.errorReason());
   }
 }
@@ -312,6 +337,23 @@ void updateStage(){
     Serial.println("FAILED UPDATING STAGE");
     Serial.println("REASON: " + fbdo.errorReason());
   }
+}
+
+void incrementPartsProduced() {
+  Firebase.RTDB.getInt(&fbdo, "molds/1000/totalPartsProduced");
+  int totalPartsProduced = fbdo.to<int>();
+  totalPartsProduced++;
+
+  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/totalPartsProduced", totalPartsProduced)) {
+    Serial.print("INCREMENTED TOTAL PARTS PRODUCED: ");
+    Serial.println(totalPartsProduced);
+  }
+  else {
+    Serial.println("FAILED INCREMENTING TOTAL PARTS PRODUCED");
+    Serial.println("REASON: " + fbdo.errorReason());
+  }
+}
+
 void getManufacturingParameters() {
   String basePath = "molds/1000/manufacturingParameters/";
 
