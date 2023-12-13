@@ -24,10 +24,25 @@ FirebaseConfig config;
 
 ESP8266WebServer server(HTTP_REST_PORT);
 
-int maxTemp = 240;
-int maxCoolingTemp = 35;
-int maxFlow = 8;
-int minFlow = 3;
+int maxCavityTemp;
+int maxCoolingTemp;
+int minCoolingTemp;
+int maxCoolingMillis;
+int minCoolingMillis;
+int maxPlasticTemp;
+int minPlasticTemp;
+int maxInjectionFlow;
+int minInjectionFlow;
+int maxFillPressure;
+int minFillPressure;
+int maxFillMillis;
+int minFillMillis;
+int maxPackPressure;
+int minPackPressure;
+int maxPackMillis;
+int minPackMillis;
+int maxHoldPressure;
+int minHoldPressure;
 
 //int arrSize = sizeof(temps)/sizeof(temps[0]);
 double lastCavityTemp = 30;
@@ -92,6 +107,8 @@ void setup() {
   Firebase.reconnectWiFi(true);
 
   stageStartMillis = millis();
+  //Get manufacturing parameters
+  getManufacturingParameters();
 }
 
 void loop() {
@@ -295,4 +312,57 @@ void updateStage(){
     Serial.println("FAILED UPDATING STAGE");
     Serial.println("REASON: " + fbdo.errorReason());
   }
+void getManufacturingParameters() {
+  String basePath = "molds/1000/manufacturingParameters/";
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "cavityTemp/max");
+  maxCavityTemp = fbdo.to<int>();
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "coolingTemp/max");
+  maxCoolingTemp = fbdo.to<int>();
+  Firebase.RTDB.getInt(&fbdo, basePath + "coolingTemp/min");
+  minCoolingTemp = fbdo.to<int>();
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "coolingTime/max");
+  maxCoolingMillis = fbdo.to<int>() * 1000;
+  Firebase.RTDB.getInt(&fbdo, basePath + "coolingTime/min");
+  minCoolingMillis = fbdo.to<int>() * 1000;
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "fillPressure/max");
+  maxFillPressure = fbdo.to<int>();
+  Firebase.RTDB.getInt(&fbdo, basePath + "fillPressure/min");
+  minFillPressure = fbdo.to<int>();
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "fillTime/max");
+  maxFillMillis = fbdo.to<int>() * 1000;
+  Firebase.RTDB.getInt(&fbdo, basePath + "fillTime/min");
+  minFillMillis = fbdo.to<int>() * 1000;
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "holdPressure/max");
+  maxHoldPressure = fbdo.to<int>();
+  Firebase.RTDB.getInt(&fbdo, basePath + "holdPressure/min");
+  minHoldPressure = fbdo.to<int>();
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "packPressure/max");
+  maxPackPressure = fbdo.to<int>();
+  Firebase.RTDB.getInt(&fbdo, basePath + "packPressure/min");
+  minPackPressure = fbdo.to<int>();
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "packTime/max");
+  maxPackMillis = fbdo.to<int>() * 1000;
+  Firebase.RTDB.getInt(&fbdo, basePath + "packTime/min");
+  minPackMillis = fbdo.to<int>() * 1000;
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "injectionFlow/max");
+  maxInjectionFlow = fbdo.to<int>();
+  Firebase.RTDB.getInt(&fbdo, basePath + "injectionFlow/min");
+  minInjectionFlow = fbdo.to<int>();
+
+  Firebase.RTDB.getInt(&fbdo, basePath + "plasticTemp/max");
+  maxPlasticTemp = fbdo.to<int>();
+  Firebase.RTDB.getInt(&fbdo, basePath + "plasticTemp/min");
+  minPlasticTemp = fbdo.to<int>();
+
+  Serial.print("MinFillMillis: ");
+  Serial.println(minFillMillis);
 }
