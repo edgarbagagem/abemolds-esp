@@ -69,6 +69,7 @@ double curPressure = 0;
 bool correctParameters = true;
 
 bool acceptProd = true;
+bool overrideUser = false;
 unsigned int stage = 4;
 //Available stages: 0 = "clamping", 1 = "injecting", 2 = "cooling", 3 = "ejecting"
 
@@ -287,7 +288,7 @@ void manageProduction() {
   updatePressure();
   updateFlow();
 
-  Serial.println("-------------------------------");
+  /*Serial.println("-------------------------------");
   Serial.print("StageMillis = ");
   Serial.println(stageMillis);
   Serial.print("CurAccelerometer = ");
@@ -300,6 +301,10 @@ void manageProduction() {
   Serial.println(curPlasticTemp);
   Serial.print("CurPressure = ");
   Serial.println(curPressure);
+  Serial.print("OverrideUser = ");
+  Serial.println(overrideUser);*/
+
+  //TODO get time for each stage - needs new variables and updating db
 
   //if mold is opening
   if (curAccelerometer > 0 && stage == 3) {
@@ -496,6 +501,13 @@ void incrementPartsProduced() {
     Serial.println("FAILED INCREMENTING TOTAL PARTS PRODUCED");
     Serial.println("REASON: " + fbdo.errorReason());
   }
+}
+
+void getOverride() {
+  String path = "molds/" + mold_id + "/currentParameters/overrideUser";
+
+  Firebase.RTDB.getBool(&fbdo, path);
+  overrideUser = fbdo.to<bool>();
 }
 
 void getManufacturingParameters() {
