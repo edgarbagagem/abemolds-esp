@@ -392,9 +392,9 @@ void manageProduction() {
 }
 
 void updateCorrectParameters() {
-  if (Firebase.RTDB.setBool(&fbdo, "molds/1000/currentParameters/isAcceptingParts", correctParameters)){
-      Serial.print("UPDATED PARAMETERS: ");
-      Serial.println(correctParameters);
+  if (Firebase.RTDB.setBool(&fbdo, "molds/" + mold_id + "/currentParameters/isAcceptingParts", correctParameters)){
+      //Serial.print("UPDATED PARAMETERS: ");
+      //Serial.println(correctParameters);
       //Serial.println("PATH: " + fbdo.dataPath());
       //Serial.println("TYPE: " + fbdo.dataType());
   }
@@ -405,8 +405,8 @@ void updateCorrectParameters() {
 }
 
 void updateCavityTemperature(){
-  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/currentParameters/cavityTempC", curCavityTemp)){
-      Serial.println("UPDATED CAVITY TEMP");
+  if (Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/currentParameters/cavityTempC", curCavityTemp)){
+      //Serial.println("UPDATED CAVITY TEMP");
       //Serial.println("PATH: " + fbdo.dataPath());
       //Serial.println("TYPE: " + fbdo.dataType());
   }
@@ -417,8 +417,8 @@ void updateCavityTemperature(){
 }
 
 void updatePressure(){
-  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/currentParameters/pressure", curPressure)){
-      Serial.println("UPDATED PRESSURE");
+  if (Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/currentParameters/pressure", curPressure)){
+      //Serial.println("UPDATED PRESSURE");
       //Serial.println("PATH: " + fbdo.dataPath());
       //Serial.println("TYPE: " + fbdo.dataType());
   }
@@ -429,8 +429,8 @@ void updatePressure(){
 }
 
 void updateFlow(){
-  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/currentParameters/injectionFlow", curFlow)){
-      Serial.println("UPDATED INJECTION FLOW");
+  if (Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/currentParameters/injectionFlow", curFlow)){
+      //Serial.println("UPDATED INJECTION FLOW");
       //Serial.println("PATH: " + fbdo.dataPath());
       //Serial.println("TYPE: " + fbdo.dataType());
   }
@@ -441,8 +441,8 @@ void updateFlow(){
 }
 
 void updatePlasticTemp(){
-  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/currentParameters/plasticTempC", curPlasticTemp)){
-      Serial.println("UPDATED PLASTIC TEMP");
+  if (Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/currentParameters/plasticTempC", curPlasticTemp)){
+      //Serial.println("UPDATED PLASTIC TEMP");
       //Serial.println("PATH: " + fbdo.dataPath());
       //Serial.println("TYPE: " + fbdo.dataType());
   }
@@ -472,8 +472,8 @@ void updateStage(){
       break;
   }
 
-  if (Firebase.RTDB.setString(&fbdo, "molds/1000/currentParameters/stage", stageText)){
-      Serial.println("UPDATED STAGE");
+  if (Firebase.RTDB.setString(&fbdo, "molds/" + mold_id + "/currentParameters/stage", stageText)){
+      Serial.println("UPDATED STAGE: " + stageText);
       //Serial.println("PATH: " + fbdo.dataPath());
       //Serial.println("TYPE: " + fbdo.dataType());
   }
@@ -484,11 +484,11 @@ void updateStage(){
 }
 
 void incrementPartsProduced() {
-  Firebase.RTDB.getInt(&fbdo, "molds/1000/totalPartsProduced");
+  Firebase.RTDB.getInt(&fbdo, "molds/" + mold_id + "/totalPartsProduced");
   int totalPartsProduced = fbdo.to<int>();
   totalPartsProduced++;
 
-  if (Firebase.RTDB.setInt(&fbdo, "molds/1000/totalPartsProduced", totalPartsProduced)) {
+  if (Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/totalPartsProduced", totalPartsProduced)) {
     Serial.print("INCREMENTED TOTAL PARTS PRODUCED: ");
     Serial.println(totalPartsProduced);
   }
@@ -499,7 +499,7 @@ void incrementPartsProduced() {
 }
 
 void getManufacturingParameters() {
-  String basePath = "molds/1000/manufacturingParameters/";
+  String basePath = "molds/" + mold_id + "/manufacturingParameters/";
 
   Firebase.RTDB.getInt(&fbdo, basePath + "cavityTemp/max");
   maxCavityTemp = fbdo.to<int>();
