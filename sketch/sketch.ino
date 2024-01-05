@@ -320,9 +320,21 @@ void manageProduction() {
     updateStage();
     stageStartMillis = millis();
 
-    //increment total parts produced IF correctParameters is true
-    if (correctParameters) {
-      incrementPartsProduced();
+    //get system override variable from Firebase
+    getOverride();
+
+    //increment total parts produced IF correctParameters is true AND system overrides user
+    if ((correctParameters && overrideUser) || (!overrideUser && acceptProd)) {
+      //TODO increment produced in day, week and total
+      updatePartsProduced(true);
+      //TODO keep or open "gate"
+      Serial.println("PRODUCTION CYCLE ENDED -- PARTS ACCEPTED");
+    }
+    else if ((!correctParameters && overrideUser) || (!overrideUser && !acceptProd)) {
+      //TODO increment rejected in day, week and total
+      updatePartsProduced(false);
+      //TODO keep or close "gate"
+      Serial.println("PRODUCTION CYCLE ENDED -- PARTS REJECTED");
     }
 
     //restart correctParameters boolean
@@ -394,6 +406,27 @@ void manageProduction() {
 
   //update last cavity temperature
   lastCavityTemp = curCavityTemp;
+}
+
+void updatePartsProduced(bool accepted) {
+  if (accepted) {
+    Firebase.RTDB.getInt(&fbdo, "molds/" + mold_id + "/days/" + curDateStr + "/partsProduced");
+    int partsProducedDay = fbdo.to<int>();
+    Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/days/" + curDateStr + "/partsProduced", partsProducedDay + 1);
+
+    Firebase.RTDB.getInt(&fbdo, "molds/" + mold_id + "/totalPartsProduced");
+    int totalPartsProduced = fbdo.to<int>();
+    Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/totalPartsProduced", totalPartsProduced + 1);
+  }
+  else {
+    Firebase.RTDB.getInt(&fbdo, "molds/" + mold_id + "/days/" + curDateStr + "/partsRejected");
+    int partsRejectedDay = fbdo.to<int>();
+    Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/days/" + curDateStr + "/partsRejected", partsRejectedDay + 1);
+
+    Firebase.RTDB.getInt(&fbdo, "molds/" + mold_id + "/totalPartsRejected");
+    int totalPartsRejected = fbdo.to<int>();
+    Firebase.RTDB.setInt(&fbdo, "molds/" + mold_id + "/totalPartsRejected", totalPartsRejected + 1);
+  }
 }
 
 void updateCorrectParameters() {
