@@ -213,7 +213,13 @@ void demoMode() {
         else {
           curCavityTemp *= double(random(98, 100)) / 100;
         }
-        curPressure *= double(random(70, 60)) / 100;
+        double pressureAux = curPressure *= double(random(60, 70)) / 100;
+        if (pressureAux < maxPackPressure && pressureAux > minPackPressure) {
+          curPressure = pressureAux;
+        }
+        else if (pressureAux < minPackPressure) {
+          curPressure *= double(random(85, 90));
+        }
       }
 
       break;
@@ -232,8 +238,13 @@ void demoMode() {
         curCavityTemp *= double(random(98, 100)) / 100;
       }
       
-      curPressure *= double(random(98, 102)) / 100;
-
+      if (curPressure > maxPackPressure) {
+        curPressure *= double(random(96, 99)) / 100;
+      }
+      else {
+        curPressure *= double(random(98, 102)) / 100;
+      }
+      
       break;
     case 3:
       Serial.println("Currently cooling");
